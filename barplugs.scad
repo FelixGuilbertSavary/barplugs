@@ -1,54 +1,74 @@
 india = 16;
 outdia = 31;
 outz = 4.5;
-inlen = 20;
+inlen = 25;
 
 minthick = 1.5;
 
-screw_headdia = 10;
+//screw_basedia = 6;
+
+insert_dia = 5.5;
+insert_len = 5;
 screwdia = 4;
-screw_basedia = 6;
-top_dia = screwdia*2;
+screw_headdia = 7;
+screw_headlen = 4;
+
+top_dia = insert_dia*1.8;
 top_len = 2;
 
 window_count = 5;
 window_width = 4;
 
-$fn = 18;
+$fn = 50;
 
-difference()
-{
+//curved_cyl(dia = 20, curve_r = 4, h=10);
+
 all();
+//screw2(screw_headdia, screw_headlen, screwdia, 20);
+
+//difference()
+//{
+//all();
 //    translate([0,0,-50])
 //cube(100);
-}
-//win_egg(india, inlen + 5, minthick, window_count, window_width, top_dia, top_len);
+//}
 
 module all()
 {
     difference()
     {
         union()
-        {
-
-            curved_cyl(dia = outdia, curve_r = outz, h=10);
+        {   
+            rotate([0,180,0])
+                curved_cyl(dia = outdia, curve_r = outz, h=outz);
 
             difference()
             {
                 translate([0,0,5])
-                win_egg(india, inlen + 5, minthick, window_count, window_width, top_dia, top_len);
+                    win_egg(india, inlen + 5, minthick, window_count, window_width, top_dia, top_len);
+                
                 translate([-50,-50,-100.1])
                     cube(100);
             }
+            
+            curved_cyl(dia = screw_headdia + 2, curve_r = 1.5, h=3);
         }
         
-        translate([0,0,-1])
-        screw(screwdia, screw_headdia, inlen + outz );
+        translate([0,0,-outz + screw_headlen])
+            screw2(screw_headdia, screw_headlen, screwdia, inlen +  15);
         
-        translate([0,0,-outz])
-        cylinder(d=screw_basedia, h=outz);
-        
-        
+        translate([0,0,inlen-insert_len-1])
+            cylinder(d=insert_dia,h=insert_len);
+    }
+}
+
+module screw2(headdia, headlen, shaftdia, shaftlen)
+{
+    union()
+    {
+        translate([0,0,-headlen])
+            cylinder(d=headdia,h=headlen);
+        cylinder(d=shaftdia,h=shaftlen);
     }
 }
 
@@ -69,7 +89,7 @@ module win_egg(dia, length, thick, win_count, win_width, top_dia, top_len)
                 }
             }
             
-            cylinder(d=top_dia, h=length/2 + top_len);
+            curved_cyl(dia = top_dia, h=length/2 + top_len, curve_r = top_dia/10);
         }
     }
 }
@@ -107,17 +127,23 @@ module eggshell(dia, length, thick, top_dia, top_len)
 
 module curved_cyl(dia, curve_r, h)
 {
-    difference()
+    translate([0,0,h-curve_r])
+    rotate([0,180,0])
+    union()
     {
-    hull()
+        difference()
         {
-            rotate_extrude(angle = 360) 
+            hull()
             {
-                translate([dia/2 -curve_r  ,0,0])
-                    circle(d=curve_r * 2);
+                rotate_extrude(angle = 360) 
+                {
+                    translate([dia/2 - curve_r,0,0])
+                        circle(d=curve_r * 2);
+                }
             }
+            
+            cylinder(d=dia, h=curve_r);
         }
-        cylinder(d=dia + 0.5, h=h);
-        
+        cylinder(d=dia, h=h-curve_r);
     }
 }
