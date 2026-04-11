@@ -1,161 +1,167 @@
-india = 16;
-outdia = 31;
-outz = 4.5;
-inlen = 25;
+india = 16; // Handlebar inside diameter
+outdia = 31; // Cap outside diameter
+outz = 4.5; // Cap's thickness
+cap_curve_r = outz - 2; // Cap curve radius
 
-minthick = 1.5;
+inlen = 25; // Inside overall length
 
-insert_dia = 5.9;
-insert_len = 5;
-screwdia = 4.5;
-screw_headdia = 7.5;
-screw_headlen = 4.5;
+minthick = 1.5; // minimum thickness
 
-top_dia = insert_dia+3.5;
-top_len = 4;
+insert_dia = 5.9; // Threaded insert diameter
+insert_len = 5; // Threaded insert length 
+screwdia = 4.5; // Bolt shaft diameter
+screw_headdia = 7.5; // Bolt head diameter
+screw_headlen = 5; // Bolt head length
 
-window_count = 5;
-window_width = 4;
+slot_count = 5; // Number of slots
+slot_width = 4; // Width 
 
-$fn = 100;
+steps = 3;
+step_h = 0.16;
+
+$fn = 50;
 
 all();
-//screw2(screw_headdia, screw_headlen, screwdia, 20);
-
-//win_egg(india, inlen + 5, minthick, window_count, window_width, top_dia, top_len, 5, 2);
-//eggshell(india, inlen + 5, minthick, top_dia, top_len, 5, 2);
-//filet(10, 3);
-
-//difference()
-//{
-//all();
-//    translate([0,0,-50])
-//cube(100);
-//}
 
 module all()
-{
-    difference()
-    {
-        union()
-        {   
-            rotate([0,180,0])
-                curved_cyl(dia = outdia, curve_r = outz, h=outz);
-
-            difference()
-            {
-                translate([0,0,5])
-                    win_egg(india, inlen + 5, minthick, window_count, window_width, top_dia, top_len, 5, 1);
-                
-                translate([-50,-50,-100.1])
-                    cube(100);
-            }
-            
-            curved_cyl(dia = screw_headdia + 3, curve_r = 1.5, h=2);
-        }
-        
-        translate([0,0,-outz + screw_headlen])
-            screw2(screw_headdia, screw_headlen, screwdia, inlen +  15);
-        
-        translate([0,0,inlen-insert_len-1])
-            cylinder(d=insert_dia,h=insert_len);
-    }
-}
-
-module screw2(headdia, headlen, shaftdia, shaftlen)
-{
-    union()
-    {
-        translate([0,0,-headlen])
-            cylinder(d=headdia,h=headlen);
-        cylinder(d=shaftdia,h=shaftlen);
-    }
-}
-
-module win_egg(dia, length, thick, win_count, win_width, top_dia, top_len, filet_pos, filet_r)
-{
-    intersection()
-    {
-        eggshell(dia, length, thick, top_dia, top_len, filet_pos, filet_r);
-        
-        union()
-        {
-            for(a = [0:win_count - 1])
-            {
-                rotate([0,0,360 / win_count * a])
-                {
-                    translate([0,-win_width/2,-length/2])
-                        cube([dia, win_width, length]);
-                }
-            }
-            
-            curved_cyl(dia = top_dia, h=length/2 + top_len, curve_r = top_dia/10);
-        }
-    }
-}
-
-module screw(dia, head_maxdia, length)
-{
-    union()
-    {
-        cylinder(d=dia, h=length);
-        
-        head_z = (head_maxdia - dia) / 2;
-        translate([0,0,-head_z])
-            cylinder(d2=dia, d1=head_maxdia, h=head_z);
-        translate([0,0,-head_z-10])
-            cylinder(d=head_maxdia, h=10);
-        
-    }
-}
-
-module eggshell(dia, length, thick, top_dia, top_len, filet_pos, filet_r)
 {
     union()
     {
         difference()
         {
+            insert_hub_z = inlen - minthick * 3;
+            
             union()
             {
-                resize([dia, dia, length]) 
+                // Plug end, part actually seen once installed
+                rotate([0,180,0])
+                    curved_cyl(dia = outdia, curve_r = cap_curve_r, h=outz);
+                
+                // Screw head guard for
+                curved_cyl(dia = screw_headdia + 2, curve_r = 1, h=screw_headlen -outz + minthick);
+                
+                extra_len = 5; // Length of the ellipsoid that gets cut to connect to the cap.
+                total_egg_len = inlen + extra_len;
+                
+                difference()
                 {
-                     sphere(dia);
+                    union()
+                    {
+                        // Create an ellipsoid with cut windows
+                        intersection()
+                        {
+                            translate([0,0,total_egg_len/2 - extra_len])
+                                ellipsoid(india, total_egg_len, extra_len, 1);
+                            
+                            for(a = [0:slot_count - 1])
+                            {
+                                rotate([0,0,360 / slot_count * a])
+                                {
+                                    translate([0,-slot_width/2,0])
+                                        cube([india, slot_width, inlen]);
+                                }
+                            }
+                        }
+                        
+                        // Add the tip for the threaded insert
+                        translate([0,0,insert_hub_z])
+                            curved_cyl(insert_dia + minthick * 2, 1, insert_len + minthick * 2);
+                        
+                    }
+                    
+                    // Carve the inside of the ellipsoid
+                    translate([0,0,total_egg_len/2 - extra_len])
+                         ellipsoid(india - minthick * 2, total_egg_len - minthick * 2, 0, 0);
                 }
-                cylinder(d=top_dia, h=length/2 + top_len);
+                
             }
 
-            resize([dia-thick*2, dia-thick*2, length-thick*2]) 
-                sphere(dia);
+            // Insert slot
+            translate([0,0,insert_hub_z + minthick * 2])
+                cylinder(d = insert_dia, h=insert_len);
+            
+            // Bolt
+            translate([0,0,-outz])
+                screw(screw_headdia, screw_headlen, screwdia, inlen +  15);
         }
-        sph_pos = filet_pos * dia / length;
-        sph_rad = sqrt(pow(dia/2,2) - pow(sph_pos,2));
-        translate([0,0,-filet_pos])
-            filet(sph_rad*2-.2, filet_r);
+    
+        translate([0,0,-outz + screw_headlen])
+            for(x = [0:steps])
+            {
+                rotate([0,0,180/steps*x])
+                translate([0,0,-step_h *x])
+                    cyl_inter(screw_headdia, screwdia, step_h*x);
+            }
+    
     }
 }
 
-module filet(dia, rad)
+// Cylinder intersected with a cube, creating round ramps for layers
+module cyl_inter(dia, width, h)
 {
-    translate([0,0,rad])
-    rotate_extrude()
+    difference()
     {
-        translate([dia/2 + rad, 0, 0])
+        cylinder(d=dia, h=h);
+        translate([-width/2,-dia/2,0])
+            cube([width, dia, h]);
+    }
+}
+
+module screw(headdia, headlen, shaftdia, shaftlen)
+{
+    union()
+    {
+        cylinder(d=headdia,h=headlen);
+        cylinder(d=shaftdia,h=shaftlen);
+    }
+}
+
+module ellipsoid(dia, length, skirt_pos, skirt_r)
+{    
+    ratio = length / dia;
+    
+    // skirt position on the original round sphere, before transformation
+    skirt_zpos = dia/2 - skirt_pos / ratio;
+    angle = 90 - acos(skirt_zpos * 2 / dia);
+    skirt_dia = 2* sqrt(pow(dia/2, 2) - pow(skirt_zpos, 2));
+    skirt_dia2 = 2* sqrt(pow(dia/2, 2) - pow(skirt_zpos - filet_h(skirt_dia, skirt_r, angle), 2));
+    
+    scale([1, 1, ratio]) 
+    {
+        union()
         {
+            sphere(d=dia);
+            translate([0,0,-skirt_zpos])
+                filet(skirt_dia2, skirt_r, angle);
+        }
+    }
+}
+
+function filet_h(dia, curve_r, angle) =  curve_r + sin(angle) * curve_r;
+
+module filet(dia, curve_r, angle)
+{
+    circle_h = filet_h(dia, curve_r, angle);
+    y_offset = cos(angle) * curve_r;
+    
+    rotate_extrude()
+    rotate([0,0,-90])
+    difference()
+    {
+        translate([-circle_h, -dia/2 - y_offset,0])
+             square([circle_h, dia/2 + y_offset]);
+        
+        translate([-curve_r, -dia/2 - y_offset, 0])
             intersection()
             {
-            difference()
-            {
-                
-                square([rad*2, rad*2], center=true);
-                circle(d=rad*2);
+                circle(r=curve_r);
+                translate([-circle_h + curve_r, 0, 0])
+                    square([curve_r * 2, curve_r]);
             }
-            translate([-rad, -rad,0])
-                square([rad, rad]);
-            }
-        }
     }
 }
 
+// Cylinder with a rounded edge.
 module curved_cyl(dia, curve_r, h)
 {
     translate([0,0,h-curve_r])
