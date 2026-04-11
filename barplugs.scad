@@ -85,6 +85,7 @@ module all()
                 screw(screw_headdia, screw_headlen, screwdia, inlen +  15);
         }
     
+        // Helps the printer printing bridges around the hole for the bolt.
         translate([0,0,-outz + screw_headlen])
             for(x = [0:steps])
             {
