@@ -1,4 +1,4 @@
-india = 16; // Handlebar inside diameter
+india = 17.5; // Handlebar inside diameter
 outdia = 31; // Cap outside diameter
 outz = 4.5; // Cap's thickness
 cap_curve_r = outz - 2; // Cap curve radius
@@ -14,14 +14,20 @@ screw_headdia = 7.5; // Bolt head diameter
 screw_headlen = 5; // Bolt head length
 
 slot_count = 5; // Number of slots
-slot_width = 4; // Width 
+slot_width = 40; // Width 
 
 steps = 3;
 step_h = 0.16;
 
-$fn = 50;
+$fn = 10;
 
+difference()
+{
+    
 all();
+    translate([0,0,-50])
+cube([100,100,100]);
+}
 
 module all()
 {
@@ -38,7 +44,7 @@ module all()
                     curved_cyl(dia = outdia, curve_r = cap_curve_r, h=outz);
                 
                 // Screw head guard for
-                curved_cyl(dia = screw_headdia + 2, curve_r = 1, h=screw_headlen -outz + minthick);
+                curved_cyl(dia = india - 1.5, curve_r = 1, h=screw_headlen -outz + minthick);
                 
                 extra_len = 5; // Length of the ellipsoid that gets cut to connect to the cap.
                 total_egg_len = inlen + extra_len;
